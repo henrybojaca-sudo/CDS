@@ -1,9 +1,9 @@
+Aquí está el código completo, listo para copiar:
+
+```python
 import streamlit as st
 import pandas as pd
-import requests
 import random
-from io import BytesIO
-from PIL import Image
 
 st.set_page_config(
     page_title="CDS Challenge",
@@ -142,12 +142,29 @@ def inject_css():
     .pill-best{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:#34d399;}
     .pill-countries{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);color:#818cf8;}
     .question-label{text-align:center;color:#94a3b8;font-size:.9rem;font-weight:500;margin-bottom:20px;letter-spacing:.03em;text-transform:uppercase;}
-    .country-wrap{display:flex;flex-direction:column;align-items:center;}
-    .flag-box{width:150px;height:95px;border-radius:10px;overflow:hidden;background:#1e293b;border:2px solid #1e293b;box-shadow:0 4px 20px rgba(0,0,0,.4);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;}
-    .country-label{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;color:#f1f5f9;text-align:center;margin-bottom:10px;}
-    .vs-divider{display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:24px;}
+    .vs-divider{display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:60px;}
     .vs-text{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:#334155;letter-spacing:.15em;}
     .vs-line{width:1px;height:28px;background:linear-gradient(to bottom,transparent,#334155,transparent);margin:4px 0;}
+    .flag-choice-card{position:relative;border-radius:16px;overflow:hidden;height:160px;box-shadow:0 6px 28px rgba(0,0,0,0.55);border:2px solid #1e293b;transition:border-color .2s,box-shadow .2s;cursor:pointer;}
+    .flag-choice-card img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}
+    .fcc-gradient{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.3) 55%,rgba(0,0,0,0.05) 100%);pointer-events:none;}
+    .fcc-name{position:absolute;bottom:12px;left:0;right:0;text-align:center;color:#fff;font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;text-shadow:0 2px 10px rgba(0,0,0,1);letter-spacing:-.2px;pointer-events:none;}
+    .fcc-hint{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.15);backdrop-filter:blur(4px);border-radius:20px;padding:3px 9px;font-size:.65rem;color:rgba(255,255,255,0.8);font-weight:600;letter-spacing:.05em;pointer-events:none;}
+    .fcc-placeholder{width:100%;height:100%;background:#1e293b;display:flex;align-items:center;justify-content:center;font-size:3rem;}
+    .stMarkdownContainer:has(.flag-choice-card) + div[data-testid="stButton"] > button,
+    .stMarkdownContainer:has(.flag-choice-card) ~ div[data-testid="stButton"] > button {
+        margin-top:-176px!important;height:160px!important;background:transparent!important;
+        border:3px solid transparent!important;color:transparent!important;cursor:pointer!important;
+        border-radius:16px!important;box-shadow:none!important;position:relative!important;
+        z-index:10!important;width:100%!important;
+        transition:background .18s,border-color .18s,transform .15s,box-shadow .18s!important;}
+    .stMarkdownContainer:has(.flag-choice-card) + div[data-testid="stButton"] > button:hover,
+    .stMarkdownContainer:has(.flag-choice-card) ~ div[data-testid="stButton"] > button:hover {
+        background:rgba(255,255,255,0.12)!important;border-color:rgba(255,255,255,0.85)!important;
+        box-shadow:0 0 0 4px rgba(255,255,255,0.1),0 8px 32px rgba(0,0,0,0.5)!important;transform:scale(1.03)!important;}
+    .stMarkdownContainer:has(.flag-choice-card) + div[data-testid="stButton"] > button:active,
+    .stMarkdownContainer:has(.flag-choice-card) ~ div[data-testid="stButton"] > button:active {
+        background:rgba(255,255,255,0.22)!important;transform:scale(0.97)!important;}
     div[data-testid="stButton"]>button{border-radius:12px!important;font-family:'DM Sans',sans-serif!important;font-weight:600!important;font-size:.9rem!important;padding:10px 16px!important;width:100%!important;transition:all .15s ease!important;border:1.5px solid #1e3a5f!important;background:linear-gradient(135deg,#0f2a4a,#0d1f3c)!important;color:#93c5fd!important;}
     div[data-testid="stButton"]>button:hover{border-color:#3b82f6!important;color:#bfdbfe!important;transform:translateY(-1px)!important;box-shadow:0 6px 20px rgba(59,130,246,.2)!important;}
     div[data-testid="stButton"]>button[kind="primary"]{background:linear-gradient(135deg,#1d4ed8,#1e40af)!important;border-color:#3b82f6!important;color:#fff!important;}
@@ -170,21 +187,53 @@ def inject_css():
     </style>
     """, unsafe_allow_html=True)
 
-def render_flag(name, w=150, h=95):
-    iso = COUNTRY_ISO.get(name)
-    if iso:
-        url = f"https://flagcdn.com/w160/{iso}.png"
-        st.markdown(f'<div class="flag-box" style="width:{w}px;height:{h}px"><img src="{url}" alt="{name}" style="width:100%;height:100%;object-fit:cover;border-radius:8px"/></div>', unsafe_allow_html=True)
+
+def render_flag_choice(name, hint=True):
+    iso = COUNTRY_ISO.get(name, "")
+    flag_url = f"https://flagcdn.com/w160/{iso}.png" if iso else ""
+    img_html = f'<img src="{flag_url}" alt="{name}">' if flag_url else '<div class="fcc-placeholder">🏳️</div>'
+    hint_html = '<div class="fcc-hint">👆 seleccionar</div>' if hint else ""
+    st.markdown(f"""
+    <div class="flag-choice-card">
+      {img_html}
+      <div class="fcc-gradient"></div>
+      <div class="fcc-name">{name}</div>
+      {hint_html}
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_flag_small(name):
+    iso = COUNTRY_ISO.get(name, "")
+    flag_url = f"https://flagcdn.com/w160/{iso}.png" if iso else ""
+    if flag_url:
+        st.markdown(
+            f'<div style="width:100%;height:100px;border-radius:10px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.4)">'
+            f'<img src="{flag_url}" alt="{name}" style="width:100%;height:100%;object-fit:cover;display:block"></div>',
+            unsafe_allow_html=True)
     else:
-        st.markdown(f'<div class="flag-box" style="width:{w}px;height:{h}px">🏳️</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div style="width:100%;height:100px;border-radius:10px;background:#1e293b;display:flex;align-items:center;justify-content:center;font-size:2.5rem">🏳️</div>',
+            unsafe_allow_html=True)
+
 
 def main():
-    init_state(); inject_css()
+    init_state()
+    inject_css()
 
-    st.markdown('<div class="game-header"><div class="game-title">¿Quién tiene mayor <span>riesgo país</span>?</div><div class="game-subtitle">Credit Default Swap Challenge · Posgrado en Finanzas</div></div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="game-header">'
+        '<div class="game-title">¿Quién tiene mayor <span>riesgo país</span>?</div>'
+        '<div class="game-subtitle">Credit Default Swap Challenge · Posgrado en Finanzas</div>'
+        '</div>', unsafe_allow_html=True)
 
     n = len(st.session_state.df)
-    st.markdown(f'<div class="score-row"><div class="pill pill-score">🔥 Racha: {st.session_state.score}</div><div class="pill pill-best">🏆 Mejor: {st.session_state.best}</div><div class="pill pill-countries">🌍 {n} países</div></div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="score-row">'
+        f'<div class="pill pill-score">🔥 Racha: {st.session_state.score}</div>'
+        f'<div class="pill pill-best">🏆 Mejor: {st.session_state.best}</div>'
+        f'<div class="pill pill-countries">🌍 {n} países</div>'
+        f'</div>', unsafe_allow_html=True)
 
     with st.sidebar:
         st.markdown("### 📂 Datos")
@@ -193,95 +242,116 @@ def main():
         if up:
             dfn = load_excel(up)
             if dfn is not None:
-                st.session_state.df = dfn; reset_game(); advance()
+                st.session_state.df = dfn
+                reset_game(); advance()
                 st.success(f"✅ {len(dfn)} países cargados"); st.rerun()
         st.divider()
         if st.checkbox("📊 Ranking CDS"):
-            d = st.session_state.df.copy(); d.columns=["País","CDS (pb)"]
-            st.dataframe(d.sort_values("CDS (pb)",ascending=False).reset_index(drop=True), hide_index=True, use_container_width=True, height=480)
+            d = st.session_state.df.copy(); d.columns = ["País","CDS (pb)"]
+            st.dataframe(d.sort_values("CDS (pb)", ascending=False).reset_index(drop=True),
+                         hide_index=True, use_container_width=True, height=480)
         st.divider()
         st.caption("**CDS** = Credit Default Swap. Mayor CDS = Mayor riesgo soberano.")
 
-    c1,c2,c3 = st.columns([2,3,2])
+    c1, c2, c3 = st.columns([2, 3, 2])
     with c2:
-        if st.button("🎮 Nuevo juego" if st.session_state.game_started else "▶️ Iniciar juego", type="primary", use_container_width=True):
+        label = "🎮 Nuevo juego" if st.session_state.game_started else "▶️ Iniciar juego"
+        if st.button(label, type="primary", use_container_width=True):
             reset_game(); advance(); st.rerun()
 
     if st.session_state.game_started and not st.session_state.game_over:
         pair = st.session_state.current_pair
         if not pair: return
-        df=st.session_state.df; ia,ib=pair
-        ca,cb=df.loc[ia,"Pais"],df.loc[ib,"Pais"]
-        cds_a,cds_b=df.loc[ia,"CDS"],df.loc[ib,"CDS"]
-        correct=ca if cds_a>cds_b else cb
+        df = st.session_state.df
+        ia, ib = pair
+        ca, cb = df.loc[ia,"Pais"], df.loc[ib,"Pais"]
+        cds_a, cds_b = df.loc[ia,"CDS"], df.loc[ib,"CDS"]
+        correct = ca if cds_a > cds_b else cb
 
         st.markdown('<hr class="game-divider">', unsafe_allow_html=True)
-        st.markdown('<div class="question-label">¿Cuál tiene el CDS más alto?</div>', unsafe_allow_html=True)
+        st.markdown('<div class="question-label">¿Cuál tiene el CDS más alto? — haz clic en la bandera</div>', unsafe_allow_html=True)
 
-        col_a,col_vs,col_b = st.columns([5,1,5])
+        col_a, col_vs, col_b = st.columns([5, 1, 5])
+
         with col_a:
-            st.markdown('<div class="country-wrap">', unsafe_allow_html=True)
-            render_flag(ca)
-            st.markdown(f'<div class="country-label">{ca}</div></div>', unsafe_allow_html=True)
+            render_flag_choice(ca, hint=st.session_state.round_active)
+            if st.session_state.round_active:
+                if st.button(" ", key="ba", use_container_width=True):
+                    if ca == correct:
+                        st.session_state.score += 1
+                        st.session_state.best = max(st.session_state.best, st.session_state.score)
+                        st.session_state.feedback = "correct"
+                    else:
+                        st.session_state.feedback = "wrong"; st.session_state.game_over = True
+                    st.session_state.correct_country = correct
+                    st.session_state.round_active = False; st.rerun()
+
         with col_vs:
             st.markdown('<div class="vs-divider"><div class="vs-line"></div><div class="vs-text">VS</div><div class="vs-line"></div></div>', unsafe_allow_html=True)
+
         with col_b:
-            st.markdown('<div class="country-wrap">', unsafe_allow_html=True)
-            render_flag(cb)
-            st.markdown(f'<div class="country-label">{cb}</div></div>', unsafe_allow_html=True)
+            render_flag_choice(cb, hint=st.session_state.round_active)
+            if st.session_state.round_active:
+                if st.button(" ", key="bb", use_container_width=True):
+                    if cb == correct:
+                        st.session_state.score += 1
+                        st.session_state.best = max(st.session_state.best, st.session_state.score)
+                        st.session_state.feedback = "correct"
+                    else:
+                        st.session_state.feedback = "wrong"; st.session_state.game_over = True
+                    st.session_state.correct_country = correct
+                    st.session_state.round_active = False; st.rerun()
 
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        if st.session_state.round_active:
-            ba,_,bb = st.columns([5,1,5])
-            with ba:
-                if st.button(f"🗳️  {ca}", key="ba", use_container_width=True):
-                    if ca==correct: st.session_state.score+=1; st.session_state.best=max(st.session_state.best,st.session_state.score); st.session_state.feedback="correct"
-                    else: st.session_state.feedback="wrong"; st.session_state.game_over=True
-                    st.session_state.correct_country=correct; st.session_state.round_active=False; st.rerun()
-            with bb:
-                if st.button(f"🗳️  {cb}", key="bb", use_container_width=True):
-                    if cb==correct: st.session_state.score+=1; st.session_state.best=max(st.session_state.best,st.session_state.score); st.session_state.feedback="correct"
-                    else: st.session_state.feedback="wrong"; st.session_state.game_over=True
-                    st.session_state.correct_country=correct; st.session_state.round_active=False; st.rerun()
-
-        if st.session_state.feedback=="correct":
-            cn=st.session_state.correct_country; c_cds=df.loc[df["Pais"]==cn,"CDS"].values[0]
-            ot=cb if cn==ca else ca; o_cds=df.loc[df["Pais"]==ot,"CDS"].values[0]
+        if st.session_state.feedback == "correct":
+            cn = st.session_state.correct_country
+            c_cds = df.loc[df["Pais"]==cn,"CDS"].values[0]
+            ot = cb if cn==ca else ca; o_cds = df.loc[df["Pais"]==ot,"CDS"].values[0]
             st.markdown(f'<div class="fb-box fb-correct">✅ ¡Correcto! <b>{cn}</b> tiene mayor riesgo soberano</div>', unsafe_allow_html=True)
             st.markdown(f'<div class="cds-reveal"><div class="cds-badge cds-winner">🔴 {cn}: {c_cds:,.1f} pb</div><div class="cds-badge cds-loser">⚪ {ot}: {o_cds:,.1f} pb</div></div>', unsafe_allow_html=True)
-            _,cn2,_ = st.columns([2,3,2])
+            _, cn2, _ = st.columns([2, 3, 2])
             with cn2:
-                if st.button("Siguiente →", type="primary", use_container_width=True): advance(); st.rerun()
+                if st.button("Siguiente →", type="primary", use_container_width=True):
+                    advance(); st.rerun()
 
     if st.session_state.game_over:
-        fb=st.session_state.feedback; sc=st.session_state.score; bst=st.session_state.best
-        pair=st.session_state.current_pair; df=st.session_state.df
-        if fb=="completed":
+        fb = st.session_state.feedback; sc = st.session_state.score; bst = st.session_state.best
+        pair = st.session_state.current_pair; df = st.session_state.df
+        if fb == "completed":
             st.markdown(f'<div class="fb-box fb-done">🎉 ¡Completaste todos los pares! · Racha: <b>{sc}</b> · Récord: <b>{bst}</b></div>', unsafe_allow_html=True)
-        elif fb=="wrong" and pair:
-            ia,ib=pair; ca,cb=df.loc[ia,"Pais"],df.loc[ib,"Pais"]
-            cds_a,cds_b=df.loc[ia,"CDS"],df.loc[ib,"CDS"]
-            cn=st.session_state.correct_country; c_cds=df.loc[df["Pais"]==cn,"CDS"].values[0]
-            ot=cb if cn==ca else ca; o_cds=df.loc[df["Pais"]==ot,"CDS"].values[0]
+        elif fb == "wrong" and pair:
+            ia, ib = pair; ca, cb = df.loc[ia,"Pais"], df.loc[ib,"Pais"]
+            cds_a, cds_b = df.loc[ia,"CDS"], df.loc[ib,"CDS"]
+            cn = st.session_state.correct_country; c_cds = df.loc[df["Pais"]==cn,"CDS"].values[0]
+            ot = cb if cn==ca else ca; o_cds = df.loc[df["Pais"]==ot,"CDS"].values[0]
             st.markdown(f'<div class="fb-box fb-wrong">❌ Racha detenida en <b>{sc}</b> acierto{"s" if sc!=1 else ""}<br><small>Respuesta: <b>{cn}</b> ({c_cds:,.1f} pb) vs {ot} ({o_cds:,.1f} pb)</small></div>', unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
-            a2,v2,b2=st.columns([5,1,5])
+            a2, v2, b2 = st.columns([5, 1, 5])
             with a2:
-                render_flag(ca,120,76); col="#f87171" if ca!=cn else "#34d399"
-                st.markdown(f"<div style='text-align:center;font-weight:700;color:{col};font-size:.9rem'>{ca}<br><span style='font-size:.78rem;opacity:.7'>{cds_a:,.1f} pb</span></div>", unsafe_allow_html=True)
+                render_flag_small(ca)
+                col = "#f87171" if ca!=cn else "#34d399"
+                st.markdown(f"<div style='text-align:center;font-weight:700;color:{col};font-size:.9rem;margin-top:8px'>{ca}<br><span style='font-size:.78rem;opacity:.7'>{cds_a:,.1f} pb</span></div>", unsafe_allow_html=True)
             with v2:
                 st.markdown('<div class="vs-divider"><div class="vs-line"></div><div class="vs-text">VS</div><div class="vs-line"></div></div>', unsafe_allow_html=True)
             with b2:
-                render_flag(cb,120,76); col="#f87171" if cb!=cn else "#34d399"
-                st.markdown(f"<div style='text-align:center;font-weight:700;color:{col};font-size:.9rem'>{cb}<br><span style='font-size:.78rem;opacity:.7'>{cds_b:,.1f} pb</span></div>", unsafe_allow_html=True)
+                render_flag_small(cb)
+                col = "#f87171" if cb!=cn else "#34d399"
+                st.markdown(f"<div style='text-align:center;font-weight:700;color:{col};font-size:.9rem;margin-top:8px'>{cb}<br><span style='font-size:.78rem;opacity:.7'>{cds_b:,.1f} pb</span></div>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
-        _,cb2,_=st.columns([2,3,2])
+        _, cb2, _ = st.columns([2, 3, 2])
         with cb2:
-            if st.button("🔄 Jugar de nuevo", type="primary", use_container_width=True): reset_game(); advance(); st.rerun()
+            if st.button("🔄 Jugar de nuevo", type="primary", use_container_width=True):
+                reset_game(); advance(); st.rerun()
 
     elif not st.session_state.game_started:
         st.markdown('<div class="welcome-box"><div class="welcome-icon">🎯</div><div class="welcome-text">Presiona <b>Iniciar juego</b> para comenzar</div><div class="welcome-sub">86 países · Datos reales de CDS · Bloomberg</div></div>', unsafe_allow_html=True)
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     main()
+```
+
+**Para pegar en GitHub:**
+1. Haz clic dentro del editor (donde dice "Enter file contents here")
+2. **Ctrl+A** para seleccionar todo
+3. **Ctrl+V** para pegar el código de arriba
+4. Clic en **"Commit changes..."** (botón verde arriba a la derecha)
