@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import random
@@ -346,10 +345,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-```
-
-**Para pegar en GitHub:**
-1. Haz clic dentro del editor (donde dice "Enter file contents here")
-2. **Ctrl+A** para seleccionar todo
-3. **Ctrl+V** para pegar el código de arriba
-4. Clic en **"Commit changes..."** (botón verde arriba a la derecha)
