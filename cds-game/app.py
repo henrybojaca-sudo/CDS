@@ -68,6 +68,7 @@ DEFAULT_DATA = [
 
 NON_COUNTRIES = {"América","EMEA","Asia/Pacífico","Name"}
 
+
 def load_excel(f):
     try:
         raw = pd.read_excel(f, header=None)
@@ -88,13 +89,16 @@ def load_excel(f):
         st.error(f"Error: {e}")
         return None
 
+
 def default_df():
     return pd.DataFrame(DEFAULT_DATA, columns=["Pais","CDS"])
+
 
 def pick_pair(df, used):
     idx = list(df.index)
     cands = [(i,j) for i in idx for j in idx if i<j and (i,j) not in used]
     return random.choice(cands) if cands else None
+
 
 def init_state():
     for k,v in {"df":None,"score":0,"best":0,"game_over":False,
@@ -105,10 +109,12 @@ def init_state():
     if st.session_state.df is None:
         st.session_state.df = default_df()
 
+
 def reset_game():
     st.session_state.update({"score":0,"game_over":False,"game_started":True,
         "current_pair":None,"used_pairs":set(),"feedback":None,
         "correct_country":None,"round_active":True})
+
 
 def advance():
     st.session_state.feedback = None
@@ -122,62 +128,62 @@ def advance():
         st.session_state.current_pair = pair
         st.session_state.used_pairs.add(pair)
 
+
 def inject_css():
     st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
-    html,body,[class*="css"]{font-family:'DM Sans',sans-serif;}
-    .stApp{background:#0a0f1e;}
-    section[data-testid="stSidebar"]{background:#0d1426;}
-    .game-header{text-align:center;padding:28px 0 8px;margin-bottom:4px;}
-    .game-title{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:#fff;letter-spacing:-.5px;margin:0;line-height:1.1;}
-    .game-title span{color:#fbbf24;}
-    .game-subtitle{color:#64748b;font-size:.85rem;margin-top:6px;letter-spacing:.05em;text-transform:uppercase;}
-    .score-row{display:flex;justify-content:center;gap:10px;margin:16px 0 24px;flex-wrap:wrap;}
-    .pill{display:flex;align-items:center;gap:6px;padding:6px 16px;border-radius:100px;font-size:.88rem;font-weight:600;}
-    .pill-score{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);color:#fbbf24;}
-    .pill-best{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:#34d399;}
-    .pill-countries{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);color:#818cf8;}
-    .question-label{text-align:center;color:#94a3b8;font-size:.9rem;font-weight:500;margin-bottom:20px;letter-spacing:.03em;text-transform:uppercase;}
-    .vs-divider{display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:60px;}
-    .vs-text{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:#334155;letter-spacing:.15em;}
-    .vs-line{width:1px;height:28px;background:linear-gradient(to bottom,transparent,#334155,transparent);margin:4px 0;}
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
+html,body,[class*="css"]{font-family:'DM Sans',sans-serif;}
+.stApp{background:#0a0f1e;}
+section[data-testid="stSidebar"]{background:#0d1426;}
+.game-header{text-align:center;padding:28px 0 8px;margin-bottom:4px;}
+.game-title{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:#fff;letter-spacing:-.5px;margin:0;line-height:1.1;}
+.game-title span{color:#fbbf24;}
+.game-subtitle{color:#64748b;font-size:.85rem;margin-top:6px;letter-spacing:.05em;text-transform:uppercase;}
+.score-row{display:flex;justify-content:center;gap:10px;margin:16px 0 24px;flex-wrap:wrap;}
+.pill{display:flex;align-items:center;gap:6px;padding:6px 16px;border-radius:100px;font-size:.88rem;font-weight:600;}
+.pill-score{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);color:#fbbf24;}
+.pill-best{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:#34d399;}
+.pill-countries{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);color:#818cf8;}
+.question-label{text-align:center;color:#94a3b8;font-size:.9rem;font-weight:500;margin-bottom:20px;letter-spacing:.03em;text-transform:uppercase;}
+.vs-divider{display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:60px;}
+.vs-text{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:#334155;letter-spacing:.15em;}
+.vs-line{width:1px;height:28px;background:linear-gradient(to bottom,transparent,#334155,transparent);margin:4px 0;}
 
-    .flag-choice-card{position:relative;border-radius:16px;overflow:hidden;height:160px;box-shadow:0 6px 28px rgba(0,0,0,0.55);border:2px solid #1e293b;cursor:pointer;}
-    .flag-choice-card img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}
-    .fcc-gradient{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.3) 55%,rgba(0,0,0,0.05) 100%);pointer-events:none;}
-    .fcc-name{position:absolute;bottom:12px;left:0;right:0;text-align:center;color:#fff;font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;text-shadow:0 2px 10px rgba(0,0,0,1);letter-spacing:-.2px;pointer-events:none;}
-    .fcc-hint{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.15);backdrop-filter:blur(4px);border-radius:20px;padding:3px 9px;font-size:.65rem;color:rgba(255,255,255,0.8);font-weight:600;letter-spacing:.05em;pointer-events:none;}
-    .fcc-placeholder{width:100%;height:100%;background:#1e293b;display:flex;align-items:center;justify-content:center;font-size:3rem;}
+.flag-choice-card{position:relative;border-radius:16px;overflow:hidden;height:160px;box-shadow:0 6px 28px rgba(0,0,0,0.55);border:2px solid #1e293b;cursor:pointer;}
+.flag-choice-card img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}
+.fcc-gradient{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.3) 55%,rgba(0,0,0,0.05) 100%);pointer-events:none;}
+.fcc-name{position:absolute;bottom:12px;left:0;right:0;text-align:center;color:#fff;font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;text-shadow:0 2px 10px rgba(0,0,0,1);letter-spacing:-.2px;pointer-events:none;}
+.fcc-hint{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.15);backdrop-filter:blur(4px);border-radius:20px;padding:3px 9px;font-size:.65rem;color:rgba(255,255,255,0.8);font-weight:600;letter-spacing:.05em;pointer-events:none;}
+.fcc-placeholder{width:100%;height:100%;background:#1e293b;display:flex;align-items:center;justify-content:center;font-size:3rem;}
 
-    /* Botón transparente encima de la bandera — solo en columnas con bandera */
-    div[data-testid="stColumn"]:has(> div > div[data-testid="stVerticalBlock"] .flag-choice-card){position:relative!important;}
-    div[data-testid="stColumn"]:has(> div > div[data-testid="stVerticalBlock"] .flag-choice-card) div[data-testid="stButton"]{position:absolute!important;top:0!important;left:0!important;right:0!important;z-index:20!important;}
-    div[data-testid="stColumn"]:has(> div > div[data-testid="stVerticalBlock"] .flag-choice-card) div[data-testid="stButton"]>button{height:160px!important;background:transparent!important;border:3px solid transparent!important;color:transparent!important;cursor:pointer!important;border-radius:16px!important;box-shadow:none!important;width:100%!important;transition:background .18s,border-color .18s,transform .15s,box-shadow .18s!important;}
-    div[data-testid="stColumn"]:has(> div > div[data-testid="stVerticalBlock"] .flag-choice-card) div[data-testid="stButton"]>button:hover{background:rgba(255,255,255,0.12)!important;border-color:rgba(255,255,255,0.85)!important;box-shadow:0 0 0 4px rgba(255,255,255,0.1),0 8px 32px rgba(0,0,0,0.5)!important;transform:scale(1.03)!important;}
-    div[data-testid="stColumn"]:has(> div > div[data-testid="stVerticalBlock"] .flag-choice-card) div[data-testid="stButton"]>button:active{background:rgba(255,255,255,0.22)!important;transform:scale(0.97)!important;}
+div[data-testid="stColumn"]:has(.flag-choice-card){position:relative!important;}
+div[data-testid="stColumn"]:has(.flag-choice-card) div[data-testid="stButton"]{position:absolute!important;top:0!important;left:0!important;right:0!important;z-index:20!important;}
+div[data-testid="stColumn"]:has(.flag-choice-card) div[data-testid="stButton"]>button{height:160px!important;background:transparent!important;border:3px solid transparent!important;color:transparent!important;cursor:pointer!important;border-radius:16px!important;box-shadow:none!important;width:100%!important;transition:background .18s,border-color .18s,transform .15s,box-shadow .18s!important;}
+div[data-testid="stColumn"]:has(.flag-choice-card) div[data-testid="stButton"]>button:hover{background:rgba(255,255,255,0.12)!important;border-color:rgba(255,255,255,0.85)!important;box-shadow:0 0 0 4px rgba(255,255,255,0.1),0 8px 32px rgba(0,0,0,0.5)!important;transform:scale(1.03)!important;}
+div[data-testid="stColumn"]:has(.flag-choice-card) div[data-testid="stButton"]>button:active{background:rgba(255,255,255,0.22)!important;transform:scale(0.97)!important;}
 
-    div[data-testid="stButton"]>button{border-radius:12px!important;font-family:'DM Sans',sans-serif!important;font-weight:600!important;font-size:.9rem!important;padding:10px 16px!important;width:100%!important;transition:all .15s ease!important;border:1.5px solid #1e3a5f!important;background:linear-gradient(135deg,#0f2a4a,#0d1f3c)!important;color:#93c5fd!important;}
-    div[data-testid="stButton"]>button:hover{border-color:#3b82f6!important;color:#bfdbfe!important;transform:translateY(-1px)!important;box-shadow:0 6px 20px rgba(59,130,246,.2)!important;}
-    div[data-testid="stButton"]>button[kind="primary"]{background:linear-gradient(135deg,#1d4ed8,#1e40af)!important;border-color:#3b82f6!important;color:#fff!important;}
-    div[data-testid="stButton"]>button[kind="primary"]:hover{background:linear-gradient(135deg,#2563eb,#1d4ed8)!important;box-shadow:0 6px 24px rgba(37,99,235,.35)!important;}
+div[data-testid="stButton"]>button{border-radius:12px!important;font-family:'DM Sans',sans-serif!important;font-weight:600!important;font-size:.9rem!important;padding:10px 16px!important;width:100%!important;transition:all .15s ease!important;border:1.5px solid #1e3a5f!important;background:linear-gradient(135deg,#0f2a4a,#0d1f3c)!important;color:#93c5fd!important;}
+div[data-testid="stButton"]>button:hover{border-color:#3b82f6!important;color:#bfdbfe!important;transform:translateY(-1px)!important;box-shadow:0 6px 20px rgba(59,130,246,.2)!important;}
+div[data-testid="stButton"]>button[kind="primary"]{background:linear-gradient(135deg,#1d4ed8,#1e40af)!important;border-color:#3b82f6!important;color:#fff!important;}
+div[data-testid="stButton"]>button[kind="primary"]:hover{background:linear-gradient(135deg,#2563eb,#1d4ed8)!important;box-shadow:0 6px 24px rgba(37,99,235,.35)!important;}
 
-    .fb-box{border-radius:14px;padding:14px 18px;text-align:center;font-weight:600;font-size:.95rem;margin:16px 0 12px;line-height:1.5;}
-    .fb-correct{background:rgba(52,211,153,.08);border:1.5px solid rgba(52,211,153,.3);color:#34d399;}
-    .fb-wrong{background:rgba(239,68,68,.08);border:1.5px solid rgba(239,68,68,.3);color:#f87171;}
-    .fb-done{background:rgba(251,191,36,.08);border:1.5px solid rgba(251,191,36,.3);color:#fbbf24;}
-    .cds-reveal{display:flex;justify-content:center;gap:12px;margin:8px 0 16px;flex-wrap:wrap;}
-    .cds-badge{padding:4px 14px;border-radius:100px;font-size:.82rem;font-weight:600;}
-    .cds-winner{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);color:#34d399;}
-    .cds-loser{background:rgba(100,116,139,.12);border:1px solid rgba(100,116,139,.25);color:#64748b;}
-    .game-divider{border:none;border-top:1px solid #1e293b;margin:20px 0;}
-    .welcome-box{text-align:center;padding:48px 24px;color:#475569;}
-    .welcome-icon{font-size:3.5rem;margin-bottom:16px;}
-    .welcome-text{font-size:1rem;font-weight:500;color:#64748b;}
-    .welcome-sub{font-size:.83rem;color:#334155;margin-top:8px;}
-    #MainMenu,footer,header{visibility:hidden;}
-    .block-container{padding-top:1.5rem;padding-bottom:2rem;}
-    </style>
+.fb-box{border-radius:14px;padding:14px 18px;text-align:center;font-weight:600;font-size:.95rem;margin:16px 0 12px;line-height:1.5;}
+.fb-correct{background:rgba(52,211,153,.08);border:1.5px solid rgba(52,211,153,.3);color:#34d399;}
+.fb-wrong{background:rgba(239,68,68,.08);border:1.5px solid rgba(239,68,68,.3);color:#f87171;}
+.fb-done{background:rgba(251,191,36,.08);border:1.5px solid rgba(251,191,36,.3);color:#fbbf24;}
+.cds-reveal{display:flex;justify-content:center;gap:12px;margin:8px 0 16px;flex-wrap:wrap;}
+.cds-badge{padding:4px 14px;border-radius:100px;font-size:.82rem;font-weight:600;}
+.cds-winner{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);color:#34d399;}
+.cds-loser{background:rgba(100,116,139,.12);border:1px solid rgba(100,116,139,.25);color:#64748b;}
+.game-divider{border:none;border-top:1px solid #1e293b;margin:20px 0;}
+.welcome-box{text-align:center;padding:48px 24px;color:#475569;}
+.welcome-icon{font-size:3.5rem;margin-bottom:16px;}
+.welcome-text{font-size:1rem;font-weight:500;color:#64748b;}
+.welcome-sub{font-size:.83rem;color:#334155;margin-top:8px;}
+#MainMenu,footer,header{visibility:hidden;}
+.block-container{padding-top:1.5rem;padding-bottom:2rem;}
+</style>
     """, unsafe_allow_html=True)
 
 
@@ -186,14 +192,12 @@ def render_flag_choice(name, hint=True):
     flag_url = f"https://flagcdn.com/w160/{iso}.png" if iso else ""
     img_html = f'<img src="{flag_url}" alt="{name}">' if flag_url else '<div class="fcc-placeholder">🏳️</div>'
     hint_html = '<div class="fcc-hint">👆 seleccionar</div>' if hint else ""
-    st.markdown(f"""
-    <div class="flag-choice-card">
-      {img_html}
-      <div class="fcc-gradient"></div>
-      <div class="fcc-name">{name}</div>
-      {hint_html}
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"""<div class="flag-choice-card">
+  {img_html}
+  <div class="fcc-gradient"></div>
+  <div class="fcc-name">{name}</div>
+  {hint_html}
+</div>""", unsafe_allow_html=True)
 
 
 def render_flag_small(name):
@@ -275,9 +279,11 @@ def main():
                         st.session_state.best = max(st.session_state.best, st.session_state.score)
                         st.session_state.feedback = "correct"
                     else:
-                        st.session_state.feedback = "wrong"; st.session_state.game_over = True
+                        st.session_state.feedback = "wrong"
+                        st.session_state.game_over = True
                     st.session_state.correct_country = correct
-                    st.session_state.round_active = False; st.rerun()
+                    st.session_state.round_active = False
+                    st.rerun()
 
         with col_vs:
             st.markdown('<div class="vs-divider"><div class="vs-line"></div><div class="vs-text">VS</div><div class="vs-line"></div></div>', unsafe_allow_html=True)
@@ -291,14 +297,17 @@ def main():
                         st.session_state.best = max(st.session_state.best, st.session_state.score)
                         st.session_state.feedback = "correct"
                     else:
-                        st.session_state.feedback = "wrong"; st.session_state.game_over = True
+                        st.session_state.feedback = "wrong"
+                        st.session_state.game_over = True
                     st.session_state.correct_country = correct
-                    st.session_state.round_active = False; st.rerun()
+                    st.session_state.round_active = False
+                    st.rerun()
 
         if st.session_state.feedback == "correct":
             cn = st.session_state.correct_country
             c_cds = df.loc[df["Pais"]==cn,"CDS"].values[0]
-            ot = cb if cn==ca else ca; o_cds = df.loc[df["Pais"]==ot,"CDS"].values[0]
+            ot = cb if cn==ca else ca
+            o_cds = df.loc[df["Pais"]==ot,"CDS"].values[0]
             st.markdown(f'<div class="fb-box fb-correct">✅ ¡Correcto! <b>{cn}</b> tiene mayor riesgo soberano</div>', unsafe_allow_html=True)
             st.markdown(f'<div class="cds-reveal"><div class="cds-badge cds-winner">🔴 {cn}: {c_cds:,.1f} pb</div><div class="cds-badge cds-loser">⚪ {ot}: {o_cds:,.1f} pb</div></div>', unsafe_allow_html=True)
             _, cn2, _ = st.columns([2, 3, 2])
