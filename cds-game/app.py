@@ -142,26 +142,19 @@ def inject_css():
     .vs-divider{display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:60px;}
     .vs-text{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:#334155;letter-spacing:.15em;}
     .vs-line{width:1px;height:28px;background:linear-gradient(to bottom,transparent,#334155,transparent);margin:4px 0;}
-    .flag-choice-card{position:relative;border-radius:16px;overflow:hidden;height:160px;box-shadow:0 6px 28px rgba(0,0,0,0.55);border:2px solid #1e293b;transition:border-color .2s,box-shadow .2s;cursor:pointer;}
+    .flag-choice-card{position:relative;border-radius:16px;overflow:hidden;height:160px;box-shadow:0 6px 28px rgba(0,0,0,0.55);border:2px solid #1e293b;cursor:pointer;}
     .flag-choice-card img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}
     .fcc-gradient{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.3) 55%,rgba(0,0,0,0.05) 100%);pointer-events:none;}
     .fcc-name{position:absolute;bottom:12px;left:0;right:0;text-align:center;color:#fff;font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;text-shadow:0 2px 10px rgba(0,0,0,1);letter-spacing:-.2px;pointer-events:none;}
-    .fcc-hint{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.15);backdrop-filter:blur(4px);border-radius:20px;padding:3px 9px;font-size:.65rem;color:rgba(255,255,255,0.8);font-weight:600;letter-spacing:.05em;pointer-events:none;}
+    .fcc-hint{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.15);backdrop-filter:blur(4px);border-radius:20px;padding:3px 9px;font-size:.65rem;color:rgba(255,255,255,0.8);font-weight:600;pointer-events:none;}
     .fcc-placeholder{width:100%;height:100%;background:#1e293b;display:flex;align-items:center;justify-content:center;font-size:3rem;}
-    .stMarkdownContainer:has(.flag-choice-card) + div[data-testid="stButton"] > button,
-    .stMarkdownContainer:has(.flag-choice-card) ~ div[data-testid="stButton"] > button {
-        margin-top:-176px!important;height:160px!important;background:transparent!important;
-        border:3px solid transparent!important;color:transparent!important;cursor:pointer!important;
-        border-radius:16px!important;box-shadow:none!important;position:relative!important;
-        z-index:10!important;width:100%!important;
-        transition:background .18s,border-color .18s,transform .15s,box-shadow .18s!important;}
-    .stMarkdownContainer:has(.flag-choice-card) + div[data-testid="stButton"] > button:hover,
-    .stMarkdownContainer:has(.flag-choice-card) ~ div[data-testid="stButton"] > button:hover {
-        background:rgba(255,255,255,0.12)!important;border-color:rgba(255,255,255,0.85)!important;
-        box-shadow:0 0 0 4px rgba(255,255,255,0.1),0 8px 32px rgba(0,0,0,0.5)!important;transform:scale(1.03)!important;}
-    .stMarkdownContainer:has(.flag-choice-card) + div[data-testid="stButton"] > button:active,
-    .stMarkdownContainer:has(.flag-choice-card) ~ div[data-testid="stButton"] > button:active {
-        background:rgba(255,255,255,0.22)!important;transform:scale(0.97)!important;}
+
+    div[data-testid="stVerticalBlock"]:has(.flag-choice-card){position:relative!important;min-height:160px!important;}
+    div[data-testid="stVerticalBlock"]:has(.flag-choice-card) div[data-testid="stButton"]{position:absolute!important;top:0!important;left:0!important;right:0!important;z-index:20!important;}
+    div[data-testid="stVerticalBlock"]:has(.flag-choice-card) div[data-testid="stButton"]>button{height:160px!important;background:transparent!important;border:3px solid transparent!important;color:transparent!important;cursor:pointer!important;border-radius:16px!important;box-shadow:none!important;width:100%!important;transition:background .18s,border-color .18s,transform .15s!important;}
+    div[data-testid="stVerticalBlock"]:has(.flag-choice-card) div[data-testid="stButton"]>button:hover{background:rgba(255,255,255,0.12)!important;border-color:rgba(255,255,255,0.85)!important;box-shadow:0 0 0 4px rgba(255,255,255,0.1),0 8px 32px rgba(0,0,0,0.5)!important;transform:scale(1.03)!important;}
+    div[data-testid="stVerticalBlock"]:has(.flag-choice-card) div[data-testid="stButton"]>button:active{background:rgba(255,255,255,0.22)!important;transform:scale(0.97)!important;}
+
     div[data-testid="stButton"]>button{border-radius:12px!important;font-family:'DM Sans',sans-serif!important;font-weight:600!important;font-size:.9rem!important;padding:10px 16px!important;width:100%!important;transition:all .15s ease!important;border:1.5px solid #1e3a5f!important;background:linear-gradient(135deg,#0f2a4a,#0d1f3c)!important;color:#93c5fd!important;}
     div[data-testid="stButton"]>button:hover{border-color:#3b82f6!important;color:#bfdbfe!important;transform:translateY(-1px)!important;box-shadow:0 6px 20px rgba(59,130,246,.2)!important;}
     div[data-testid="stButton"]>button[kind="primary"]{background:linear-gradient(135deg,#1d4ed8,#1e40af)!important;border-color:#3b82f6!important;color:#fff!important;}
@@ -175,7 +168,7 @@ def inject_css():
     .cds-winner{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);color:#34d399;}
     .cds-loser{background:rgba(100,116,139,.12);border:1px solid rgba(100,116,139,.25);color:#64748b;}
     .game-divider{border:none;border-top:1px solid #1e293b;margin:20px 0;}
-    .welcome-box{text-align:center;padding:48px 24px;color:#475569;}
+    .welcome-box{text-align:center;padding:48px 24px;}
     .welcome-icon{font-size:3.5rem;margin-bottom:16px;}
     .welcome-text{font-size:1rem;font-weight:500;color:#64748b;}
     .welcome-sub{font-size:.83rem;color:#334155;margin-top:8px;}
@@ -245,7 +238,7 @@ def main():
         st.divider()
         if st.checkbox("📊 Ranking CDS"):
             d = st.session_state.df.copy(); d.columns = ["País","CDS (pb)"]
-            st.dataframe(d.sort_values("CDS (pb)", ascending=False).reset_index(drop=True),
+            st.dataframe(d.sort_values("CDS (pb)",ascending=False).reset_index(drop=True),
                          hide_index=True, use_container_width=True, height=480)
         st.divider()
         st.caption("**CDS** = Credit Default Swap. Mayor CDS = Mayor riesgo soberano.")
