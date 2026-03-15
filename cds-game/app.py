@@ -1,6 +1,4 @@
-Aquí está el código completo, listo para copiar:
 
-```python
 import streamlit as st
 import pandas as pd
 import random
