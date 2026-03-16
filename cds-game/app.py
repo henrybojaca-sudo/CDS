@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import random
 import math, wave, struct, io
-import streamlit.components.v1 as components
 
 st.set_page_config(
     page_title="CDS Challenge",
@@ -70,6 +69,52 @@ DEFAULT_DATA = [
 
 NON_COUNTRIES = {"América","EMEA","Asia/Pacífico","Name"}
 
+# ── Música Mario Bros (síntesis WAV en Python) ───────────────────────────────
+@st.cache_data
+def _mario_wav() -> bytes:
+    """Genera el tema de Mario Bros como WAV con síntesis de onda cuadrada."""
+    SR = 22050
+    T = 60.0 / 185  # segundos por beat a 185 BPM
+    MELODY = [
+        (659.25,.5),(659.25,.5),(0,.5),(659.25,.5),(0,.5),(523.25,.5),(659.25,1),
+        (783.99,1),(0,1),(392.00,1),(0,1),
+        (523.25,1.5),(0,.5),(392.00,1.5),(0,.5),(329.63,1.5),(0,.5),
+        (440.00,1),(0,.5),(493.88,1),(0,.5),(466.16,.5),(440.00,1),
+        (392.00,.67),(659.25,.67),(783.99,.67),
+        (880.00,1),(0,.5),(698.46,.5),(783.99,.5),
+        (0,.5),(659.25,1),(0,.5),(523.25,.5),(587.33,.5),(493.88,1.5),(0,.5),
+        (523.25,1.5),(0,.5),(392.00,1.5),(0,.5),(329.63,1.5),(0,.5),
+        (440.00,1),(0,.5),(493.88,1),(0,.5),(466.16,.5),(440.00,1),
+        (392.00,.67),(659.25,.67),(783.99,.67),
+        (880.00,1),(0,.5),(698.46,.5),(783.99,.5),
+        (0,.5),(659.25,1),(0,.5),(523.25,.5),(587.33,.5),(493.88,1.5),(0,.5),
+        (659.25,.5),(523.25,.5),(0,.5),(440.00,.5),(0,1),(415.30,.5),(392.00,.5),
+        (0,.5),(493.88,.5),(0,.5),(466.16,.5),(440.00,.5),(0,.5),(523.25,.5),(0,.5),
+        (587.33,.5),(523.25,.5),(587.33,1),(0,.5),(587.33,.5),(523.25,.5),(440.00,.5),
+        (0,.5),(392.00,.5),(329.63,.5),(392.00,.5),(440.00,1.5),(0,.5),
+        (698.46,.5),(698.46,1),(698.46,1),
+        (0,.5),(659.25,.5),(659.25,.5),(659.25,.5),
+        (0,.5),(523.25,.5),(659.25,1),
+        (783.99,1),(0,1),(392.00,1),(0,1),
+    ]
+    samples = []
+    for freq, beats in MELODY:
+        n = int(SR * beats * T)
+        if freq == 0:
+            samples.extend([0] * n)
+        else:
+            for i in range(n):
+                env = min(1.0, i / (SR * 0.008)) * max(0.0, 1.0 - i / n * 0.12)
+                v = env * 0.28 * (1 if math.sin(2 * math.pi * freq * i / SR) > 0 else -1)
+                samples.append(max(-32767, min(32767, int(v * 32767))))
+    buf = io.BytesIO()
+    with wave.open(buf, 'wb') as wf:
+        wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(SR)
+        wf.writeframes(struct.pack(f'<{len(samples)}h', *samples))
+    return buf.getvalue()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 def load_excel(f):
     try:
@@ -151,8 +196,6 @@ section[data-testid="stSidebar"]{background:#0d1426;}
 .vs-divider{display:flex;flex-direction:column;align-items:center;justify-content:center;height:160px;}
 .vs-text{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:#334155;letter-spacing:.15em;}
 .vs-line{width:1px;height:28px;background:linear-gradient(to bottom,transparent,#334155,transparent);margin:4px 0;}
-
-/* Bandera decorativa */
 .flag-choice-card{
     position:relative;border-radius:16px;overflow:hidden;height:160px;
     box-shadow:0 6px 28px rgba(0,0,0,0.55);
@@ -164,19 +207,14 @@ section[data-testid="stSidebar"]{background:#0d1426;}
 .fcc-name{position:absolute;bottom:12px;left:0;right:0;text-align:center;color:#fff;font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;text-shadow:0 2px 10px rgba(0,0,0,1);letter-spacing:-.2px;}
 .fcc-hint{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.15);backdrop-filter:blur(4px);border-radius:20px;padding:3px 9px;font-size:.65rem;color:rgba(255,255,255,0.8);font-weight:600;letter-spacing:.05em;}
 .fcc-placeholder{width:100%;height:100%;background:#1e293b;display:flex;align-items:center;justify-content:center;font-size:3rem;}
-
-/* Bandera resultado */
 .flag-result-card{position:relative;border-radius:16px;overflow:hidden;height:160px;box-shadow:0 4px 20px rgba(0,0,0,0.5);}
 .flag-result-card img{width:100%;height:100%;object-fit:cover;display:block;}
 .flag-result-card .fcc-gradient{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.3) 55%,rgba(0,0,0,0.05) 100%);}
 .flag-result-card .fcc-name{position:absolute;bottom:12px;left:0;right:0;text-align:center;color:#fff;font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;text-shadow:0 2px 10px rgba(0,0,0,1);}
-
-
 div[data-testid="stButton"]>button{border-radius:12px!important;font-family:'DM Sans',sans-serif!important;font-weight:600!important;font-size:.9rem!important;padding:10px 16px!important;width:100%!important;transition:all .15s ease!important;border:1.5px solid #1e3a5f!important;background:linear-gradient(135deg,#0f2a4a,#0d1f3c)!important;color:#93c5fd!important;}
 div[data-testid="stButton"]>button:hover{border-color:#3b82f6!important;color:#bfdbfe!important;transform:translateY(-1px)!important;box-shadow:0 6px 20px rgba(59,130,246,.2)!important;}
 div[data-testid="stButton"]>button[kind="primary"]{background:linear-gradient(135deg,#1d4ed8,#1e40af)!important;border-color:#3b82f6!important;color:#fff!important;}
 div[data-testid="stButton"]>button[kind="primary"]:hover{background:linear-gradient(135deg,#2563eb,#1d4ed8)!important;box-shadow:0 6px 24px rgba(37,99,235,.35)!important;}
-
 .fb-box{border-radius:14px;padding:14px 18px;text-align:center;font-weight:600;font-size:.95rem;margin:16px 0 12px;line-height:1.5;}
 .fb-correct{background:rgba(52,211,153,.08);border:1.5px solid rgba(52,211,153,.3);color:#34d399;}
 .fb-wrong{background:rgba(239,68,68,.08);border:1.5px solid rgba(239,68,68,.3);color:#f87171;}
@@ -194,128 +232,6 @@ div[data-testid="stButton"]>button[kind="primary"]:hover{background:linear-gradi
 .block-container{padding-top:1.5rem;padding-bottom:2rem;}
 </style>
     """, unsafe_allow_html=True)
-
-
-@st.cache_data
-def _tension_wav():
-    sr, secs = 11025, 40
-    frames = []
-    for i in range(sr * secs):
-        t = i / sr
-        drone = 0.028 * math.sin(2*math.pi*58*t) * (1 + 0.6*math.sin(2*math.pi*0.35*t))
-        bp = t % 1.25
-        b1 = 0.22 * math.exp(-bp*35) * math.sin(2*math.pi*190*bp) if bp < 0.18 else 0
-        b2 = 0.14 * math.exp(-(bp-0.22)*35) * math.sin(2*math.pi*140*(bp-0.22)) if 0.22 < bp < 0.40 else 0
-        s = max(-1.0, min(1.0, drone + b1 + b2))
-        frames.append(struct.pack('<h', int(s * 32767)))
-    buf = io.BytesIO()
-    with wave.open(buf, 'wb') as wf:
-        wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(sr)
-        wf.writeframes(b''.join(frames))
-    return buf.getvalue()
-
-
-def inject_tension_sound():
-    st.markdown(
-        '<style>[data-testid="stAudio"]{position:absolute;width:1px;height:1px;'
-        'overflow:hidden;opacity:0;pointer-events:none;}</style>',
-        unsafe_allow_html=True)
-    st.audio(_tension_wav(), format="audio/wav", autoplay=True)
-
-
-@st.cache_data
-def _mario_wav():
-    """Genera el tema overworld de Super Mario Bros como chiptune (onda cuadrada)."""
-    sr   = 22050
-    BPM  = 185
-    BEAT = 60 / BPM
-
-    FREQ = {
-        'R':0,
-        'E4':329.63,'F4':349.23,'Fs4':369.99,'G4':392.00,
-        'Ab4':415.30,'A4':440.00,'Bb4':466.16,'B4':493.88,
-        'C5':523.25,'D5':587.33,'E5':659.25,'F5':698.46,
-        'G5':783.99,'A5':880.00,
-    }
-
-    MELODY = [
-        # — Frase principal —
-        ('E5',.5),('E5',.5),('R',.5),('E5',.5),
-        ('R',.5),('C5',.5),('E5',1),
-        ('G5',1),('R',1),('G4',1),('R',1),
-        # — Frase 2 —
-        ('C5',1.5),('R',.5),('G4',1.5),('R',.5),
-        ('E4',1.5),('R',.5),
-        ('A4',1),('R',.5),('B4',1),('R',.5),('Bb4',.5),('A4',1),
-        # — Tripletes —
-        ('G4',.67),('E5',.67),('G5',.67),
-        ('A5',1),('R',.5),('F5',.5),('G5',.5),
-        ('R',.5),('E5',1),('R',.5),
-        ('C5',.5),('D5',.5),('B4',1.5),('R',.5),
-        # — Frase 2 repetida —
-        ('C5',1.5),('R',.5),('G4',1.5),('R',.5),
-        ('E4',1.5),('R',.5),
-        ('A4',1),('R',.5),('B4',1),('R',.5),('Bb4',.5),('A4',1),
-        # — Tripletes repetidos —
-        ('G4',.67),('E5',.67),('G5',.67),
-        ('A5',1),('R',.5),('F5',.5),('G5',.5),
-        ('R',.5),('E5',1),('R',.5),
-        ('C5',.5),('D5',.5),('B4',1.5),('R',.5),
-        # — Sección central —
-        ('E5',.5),('C5',.5),('R',.5),('A4',.5),
-        ('R',1),('Ab4',.5),('G4',.5),
-        ('R',.5),('B4',.5),('R',.5),('Bb4',.5),
-        ('A4',.5),('R',.5),('C5',.5),('R',.5),
-        ('D5',.5),('C5',.5),('D5',1),
-        ('R',.5),('D5',.5),('C5',.5),('A4',.5),
-        ('R',.5),('G4',.5),('E4',.5),('G4',.5),
-        ('A4',1.5),('R',.5),
-        # — Fanfarria —
-        ('F5',.5),('F5',1),('F5',1),
-        ('R',.5),('E5',.5),('E5',.5),('E5',.5),
-        ('R',.5),('C5',.5),('E5',1),
-        ('G5',1),('R',1),('G4',1),('R',1),
-    ]
-
-    frames = []
-    for note, beats in MELODY:
-        freq   = FREQ[note]
-        dur    = beats * BEAT
-        n_samp = int(sr * dur)
-        n_note = int(n_samp * 0.86)
-
-        for i in range(n_samp):
-            if freq == 0 or i >= n_note:
-                s = 0.0
-            else:
-                phase = (freq * i / sr) % 1.0
-                raw   = 1.0 if phase < 0.5 else -1.0
-                att = max(1, min(int(sr * 0.008), n_note // 4))
-                rel = max(1, min(int(sr * 0.015), n_note // 4))
-                if i < att:
-                    env = i / att
-                elif i >= n_note - rel:
-                    env = (n_note - i) / rel
-                else:
-                    env = 1.0
-                s = raw * env * 0.50
-
-            frames.append(struct.pack('<h', int(max(-1.0, min(1.0, s)) * 32767)))
-
-    buf = io.BytesIO()
-    with wave.open(buf, 'wb') as wf:
-        wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(sr)
-        wf.writeframes(b''.join(frames))
-    return buf.getvalue()
-
-
-def inject_mario_music():
-    """Reproduce el tema de Mario Bros en loop continuo (widget oculto)."""
-    st.markdown(
-        '<style>[data-testid="stAudio"]{position:absolute;width:1px;height:1px;'
-        'overflow:hidden;opacity:0;pointer-events:none;}</style>',
-        unsafe_allow_html=True)
-    st.audio(_mario_wav(), format="audio/wav", autoplay=True, loop=True)
 
 
 def render_flag_card(name, clickable=True, choice_key=""):
@@ -377,11 +293,17 @@ def main():
         f'<div class="pill pill-countries">🌍 {n} países</div>'
         f'</div>', unsafe_allow_html=True)
 
+    # ── Reproductor de música visible en el contenido principal ──────────────
+    _, cm, _ = st.columns([1, 4, 1])
+    with cm:
+        st.markdown(
+            '<div style="text-align:center;color:#475569;font-size:.72rem;'
+            'letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px">'
+            '🎵 Música del juego · haz clic en ▶</div>',
+            unsafe_allow_html=True)
+        st.audio(_mario_wav(), format="audio/wav", loop=True)
+
     with st.sidebar:
-        st.markdown("### 🎵 Música")
-        music_on = st.checkbox("🎮 Tema Mario Bros", value=True,
-                               help="Activa/desactiva la música del juego")
-        st.divider()
         st.markdown("### 📂 Datos")
         st.caption("Sube tu propio archivo Excel con CDS actualizados")
         up = st.file_uploader("Excel (col A=País, col H=CDS)", type=["xlsx"], label_visibility="collapsed")
@@ -398,10 +320,6 @@ def main():
                          hide_index=True, use_container_width=True, height=480)
         st.divider()
         st.caption("**CDS** = Credit Default Swap. Mayor CDS = Mayor riesgo soberano.")
-
-    # Música de fondo — suena siempre que el juego esté activo
-    if music_on and (st.session_state.game_started or not st.session_state.game_over):
-        inject_mario_music()
 
     c1, c2, c3 = st.columns([2, 3, 2])
     with c2:
@@ -420,8 +338,6 @@ def main():
 
         st.markdown('<hr class="game-divider">', unsafe_allow_html=True)
         st.markdown('<div class="question-label">¿Cuál tiene el CDS más alto? — haz clic en la bandera</div>', unsafe_allow_html=True)
-
-        # La música de Mario Bros ya suena como fondo; aquí se omite el sonido de tensión
 
         col_a, col_vs, col_b = st.columns([5, 1, 5])
         with col_a:
