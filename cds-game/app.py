@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import random
 import math, wave, struct, io
+import streamlit.components.v1 as components
 
 st.set_page_config(
     page_title="CDS Challenge",
@@ -201,9 +202,7 @@ def _tension_wav():
     frames = []
     for i in range(sr * secs):
         t = i / sr
-        # Low pulsing drone
         drone = 0.028 * math.sin(2*math.pi*58*t) * (1 + 0.6*math.sin(2*math.pi*0.35*t))
-        # Double heartbeat every 1.25 s
         bp = t % 1.25
         b1 = 0.22 * math.exp(-bp*35) * math.sin(2*math.pi*190*bp) if bp < 0.18 else 0
         b2 = 0.14 * math.exp(-(bp-0.22)*35) * math.sin(2*math.pi*140*(bp-0.22)) if 0.22 < bp < 0.40 else 0
@@ -217,12 +216,106 @@ def _tension_wav():
 
 
 def inject_tension_sound():
-    # Hide the audio player widget
     st.markdown(
         '<style>[data-testid="stAudio"]{position:absolute;width:1px;height:1px;'
         'overflow:hidden;opacity:0;pointer-events:none;}</style>',
         unsafe_allow_html=True)
     st.audio(_tension_wav(), format="audio/wav", autoplay=True)
+
+
+@st.cache_data
+def _mario_wav():
+    """Genera el tema overworld de Super Mario Bros como chiptune (onda cuadrada)."""
+    sr   = 22050
+    BPM  = 185
+    BEAT = 60 / BPM
+
+    FREQ = {
+        'R':0,
+        'E4':329.63,'F4':349.23,'Fs4':369.99,'G4':392.00,
+        'Ab4':415.30,'A4':440.00,'Bb4':466.16,'B4':493.88,
+        'C5':523.25,'D5':587.33,'E5':659.25,'F5':698.46,
+        'G5':783.99,'A5':880.00,
+    }
+
+    MELODY = [
+        # — Frase principal —
+        ('E5',.5),('E5',.5),('R',.5),('E5',.5),
+        ('R',.5),('C5',.5),('E5',1),
+        ('G5',1),('R',1),('G4',1),('R',1),
+        # — Frase 2 —
+        ('C5',1.5),('R',.5),('G4',1.5),('R',.5),
+        ('E4',1.5),('R',.5),
+        ('A4',1),('R',.5),('B4',1),('R',.5),('Bb4',.5),('A4',1),
+        # — Tripletes —
+        ('G4',.67),('E5',.67),('G5',.67),
+        ('A5',1),('R',.5),('F5',.5),('G5',.5),
+        ('R',.5),('E5',1),('R',.5),
+        ('C5',.5),('D5',.5),('B4',1.5),('R',.5),
+        # — Frase 2 repetida —
+        ('C5',1.5),('R',.5),('G4',1.5),('R',.5),
+        ('E4',1.5),('R',.5),
+        ('A4',1),('R',.5),('B4',1),('R',.5),('Bb4',.5),('A4',1),
+        # — Tripletes repetidos —
+        ('G4',.67),('E5',.67),('G5',.67),
+        ('A5',1),('R',.5),('F5',.5),('G5',.5),
+        ('R',.5),('E5',1),('R',.5),
+        ('C5',.5),('D5',.5),('B4',1.5),('R',.5),
+        # — Sección central —
+        ('E5',.5),('C5',.5),('R',.5),('A4',.5),
+        ('R',1),('Ab4',.5),('G4',.5),
+        ('R',.5),('B4',.5),('R',.5),('Bb4',.5),
+        ('A4',.5),('R',.5),('C5',.5),('R',.5),
+        ('D5',.5),('C5',.5),('D5',1),
+        ('R',.5),('D5',.5),('C5',.5),('A4',.5),
+        ('R',.5),('G4',.5),('E4',.5),('G4',.5),
+        ('A4',1.5),('R',.5),
+        # — Fanfarria —
+        ('F5',.5),('F5',1),('F5',1),
+        ('R',.5),('E5',.5),('E5',.5),('E5',.5),
+        ('R',.5),('C5',.5),('E5',1),
+        ('G5',1),('R',1),('G4',1),('R',1),
+    ]
+
+    frames = []
+    for note, beats in MELODY:
+        freq   = FREQ[note]
+        dur    = beats * BEAT
+        n_samp = int(sr * dur)
+        n_note = int(n_samp * 0.86)
+
+        for i in range(n_samp):
+            if freq == 0 or i >= n_note:
+                s = 0.0
+            else:
+                phase = (freq * i / sr) % 1.0
+                raw   = 1.0 if phase < 0.5 else -1.0
+                att = max(1, min(int(sr * 0.008), n_note // 4))
+                rel = max(1, min(int(sr * 0.015), n_note // 4))
+                if i < att:
+                    env = i / att
+                elif i >= n_note - rel:
+                    env = (n_note - i) / rel
+                else:
+                    env = 1.0
+                s = raw * env * 0.50
+
+            frames.append(struct.pack('<h', int(max(-1.0, min(1.0, s)) * 32767)))
+
+    buf = io.BytesIO()
+    with wave.open(buf, 'wb') as wf:
+        wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(sr)
+        wf.writeframes(b''.join(frames))
+    return buf.getvalue()
+
+
+def inject_mario_music():
+    """Reproduce el tema de Mario Bros en loop continuo (widget oculto)."""
+    st.markdown(
+        '<style>[data-testid="stAudio"]{position:absolute;width:1px;height:1px;'
+        'overflow:hidden;opacity:0;pointer-events:none;}</style>',
+        unsafe_allow_html=True)
+    st.audio(_mario_wav(), format="audio/wav", autoplay=True, loop=True)
 
 
 def render_flag_card(name, clickable=True, choice_key=""):
@@ -285,6 +378,10 @@ def main():
         f'</div>', unsafe_allow_html=True)
 
     with st.sidebar:
+        st.markdown("### 🎵 Música")
+        music_on = st.checkbox("🎮 Tema Mario Bros", value=True,
+                               help="Activa/desactiva la música del juego")
+        st.divider()
         st.markdown("### 📂 Datos")
         st.caption("Sube tu propio archivo Excel con CDS actualizados")
         up = st.file_uploader("Excel (col A=País, col H=CDS)", type=["xlsx"], label_visibility="collapsed")
@@ -301,6 +398,10 @@ def main():
                          hide_index=True, use_container_width=True, height=480)
         st.divider()
         st.caption("**CDS** = Credit Default Swap. Mayor CDS = Mayor riesgo soberano.")
+
+    # Música de fondo — suena siempre que el juego esté activo
+    if music_on and (st.session_state.game_started or not st.session_state.game_over):
+        inject_mario_music()
 
     c1, c2, c3 = st.columns([2, 3, 2])
     with c2:
@@ -320,8 +421,7 @@ def main():
         st.markdown('<hr class="game-divider">', unsafe_allow_html=True)
         st.markdown('<div class="question-label">¿Cuál tiene el CDS más alto? — haz clic en la bandera</div>', unsafe_allow_html=True)
 
-        if st.session_state.round_active:
-            inject_tension_sound()
+        # La música de Mario Bros ya suena como fondo; aquí se omite el sonido de tensión
 
         col_a, col_vs, col_b = st.columns([5, 1, 5])
         with col_a:
@@ -331,7 +431,6 @@ def main():
         with col_b:
             clicked_b = render_flag_card(cb, clickable=st.session_state.round_active, choice_key="b")
 
-        # Procesar clic — sin navegación, via WebSocket
         if st.session_state.round_active and (clicked_a or clicked_b):
             correct = ca if cds_a > cds_b else cb
             chosen = ca if clicked_a else cb
