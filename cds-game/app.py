@@ -196,29 +196,6 @@ div[data-testid="stButton"]>button[kind="primary"]:hover{background:linear-gradi
     """, unsafe_allow_html=True)
 
 
-def inject_overlay_script():
-    components.html("""
-<script>
-(function(){
-  function attach(){
-    var links = window.parent.document.querySelectorAll('a.flag-link');
-    links.forEach(function(a){
-      if(a._ov) return;
-      a._ov = true;
-      a.addEventListener('click', function(){
-        var d = window.parent.document.createElement('div');
-        d.style.cssText = 'position:fixed;inset:0;background:#0a0f1e;z-index:2147483647;';
-        window.parent.document.body.appendChild(d);
-      });
-    });
-  }
-  attach();
-  new MutationObserver(attach).observe(window.parent.document.body,{childList:true,subtree:true});
-})();
-</script>
-""", height=0, scrolling=False)
-
-
 def render_flag_card(name, clickable=True, choice_key=""):
     iso = COUNTRY_ISO.get(name, "")
     flag_url = f"https://flagcdn.com/w160/{iso}.png" if iso else ""
@@ -263,7 +240,6 @@ def render_flag_small(name):
 def main():
     init_state()
     inject_css()
-    inject_overlay_script()
 
     params = st.query_params
     if "choice" in params and st.session_state.get("round_active") and st.session_state.get("game_started") and not st.session_state.get("game_over"):
