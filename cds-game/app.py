@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import random
+import math, wave, struct, io
 
 st.set_page_config(
     page_title="CDS Challenge",
@@ -149,10 +150,32 @@ section[data-testid="stSidebar"]{background:#0d1426;}
 .vs-divider{display:flex;flex-direction:column;align-items:center;justify-content:center;height:160px;}
 .vs-text{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:#334155;letter-spacing:.15em;}
 .vs-line{width:1px;height:28px;background:linear-gradient(to bottom,transparent,#334155,transparent);margin:4px 0;}
+
+/* Bandera decorativa */
+.flag-choice-card{
+    position:relative;border-radius:16px;overflow:hidden;height:160px;
+    box-shadow:0 6px 28px rgba(0,0,0,0.55);
+    border:2px solid #1e293b;
+    transition:border-color .2s, box-shadow .2s, transform .15s;
+}
+.flag-choice-card img{width:100%;height:100%;object-fit:cover;display:block;}
+.fcc-gradient{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.3) 55%,rgba(0,0,0,0.05) 100%);}
+.fcc-name{position:absolute;bottom:12px;left:0;right:0;text-align:center;color:#fff;font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;text-shadow:0 2px 10px rgba(0,0,0,1);letter-spacing:-.2px;}
+.fcc-hint{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.15);backdrop-filter:blur(4px);border-radius:20px;padding:3px 9px;font-size:.65rem;color:rgba(255,255,255,0.8);font-weight:600;letter-spacing:.05em;}
+.fcc-placeholder{width:100%;height:100%;background:#1e293b;display:flex;align-items:center;justify-content:center;font-size:3rem;}
+
+/* Bandera resultado */
+.flag-result-card{position:relative;border-radius:16px;overflow:hidden;height:160px;box-shadow:0 4px 20px rgba(0,0,0,0.5);}
+.flag-result-card img{width:100%;height:100%;object-fit:cover;display:block;}
+.flag-result-card .fcc-gradient{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.3) 55%,rgba(0,0,0,0.05) 100%);}
+.flag-result-card .fcc-name{position:absolute;bottom:12px;left:0;right:0;text-align:center;color:#fff;font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;text-shadow:0 2px 10px rgba(0,0,0,1);}
+
+
 div[data-testid="stButton"]>button{border-radius:12px!important;font-family:'DM Sans',sans-serif!important;font-weight:600!important;font-size:.9rem!important;padding:10px 16px!important;width:100%!important;transition:all .15s ease!important;border:1.5px solid #1e3a5f!important;background:linear-gradient(135deg,#0f2a4a,#0d1f3c)!important;color:#93c5fd!important;}
 div[data-testid="stButton"]>button:hover{border-color:#3b82f6!important;color:#bfdbfe!important;transform:translateY(-1px)!important;box-shadow:0 6px 20px rgba(59,130,246,.2)!important;}
 div[data-testid="stButton"]>button[kind="primary"]{background:linear-gradient(135deg,#1d4ed8,#1e40af)!important;border-color:#3b82f6!important;color:#fff!important;}
 div[data-testid="stButton"]>button[kind="primary"]:hover{background:linear-gradient(135deg,#2563eb,#1d4ed8)!important;box-shadow:0 6px 24px rgba(37,99,235,.35)!important;}
+
 .fb-box{border-radius:14px;padding:14px 18px;text-align:center;font-weight:600;font-size:.95rem;margin:16px 0 12px;line-height:1.5;}
 .fb-correct{background:rgba(52,211,153,.08);border:1.5px solid rgba(52,211,153,.3);color:#34d399;}
 .fb-wrong{background:rgba(239,68,68,.08);border:1.5px solid rgba(239,68,68,.3);color:#f87171;}
@@ -170,6 +193,36 @@ div[data-testid="stButton"]>button[kind="primary"]:hover{background:linear-gradi
 .block-container{padding-top:1.5rem;padding-bottom:2rem;}
 </style>
     """, unsafe_allow_html=True)
+
+
+@st.cache_data
+def _tension_wav():
+    sr, secs = 11025, 40
+    frames = []
+    for i in range(sr * secs):
+        t = i / sr
+        # Low pulsing drone
+        drone = 0.028 * math.sin(2*math.pi*58*t) * (1 + 0.6*math.sin(2*math.pi*0.35*t))
+        # Double heartbeat every 1.25 s
+        bp = t % 1.25
+        b1 = 0.22 * math.exp(-bp*35) * math.sin(2*math.pi*190*bp) if bp < 0.18 else 0
+        b2 = 0.14 * math.exp(-(bp-0.22)*35) * math.sin(2*math.pi*140*(bp-0.22)) if 0.22 < bp < 0.40 else 0
+        s = max(-1.0, min(1.0, drone + b1 + b2))
+        frames.append(struct.pack('<h', int(s * 32767)))
+    buf = io.BytesIO()
+    with wave.open(buf, 'wb') as wf:
+        wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(sr)
+        wf.writeframes(b''.join(frames))
+    return buf.getvalue()
+
+
+def inject_tension_sound():
+    # Hide the audio player widget
+    st.markdown(
+        '<style>[data-testid="stAudio"]{position:absolute;width:1px;height:1px;'
+        'overflow:hidden;opacity:0;pointer-events:none;}</style>',
+        unsafe_allow_html=True)
+    st.audio(_tension_wav(), format="audio/wav", autoplay=True)
 
 
 def render_flag_card(name, clickable=True, choice_key=""):
@@ -265,7 +318,10 @@ def main():
         cds_a, cds_b = df.loc[ia,"CDS"], df.loc[ib,"CDS"]
 
         st.markdown('<hr class="game-divider">', unsafe_allow_html=True)
-        st.markdown('<div class="question-label">¿Cuál tiene el CDS más alto?</div>', unsafe_allow_html=True)
+        st.markdown('<div class="question-label">¿Cuál tiene el CDS más alto? — haz clic en la bandera</div>', unsafe_allow_html=True)
+
+        if st.session_state.round_active:
+            inject_tension_sound()
 
         col_a, col_vs, col_b = st.columns([5, 1, 5])
         with col_a:
@@ -275,6 +331,7 @@ def main():
         with col_b:
             clicked_b = render_flag_card(cb, clickable=st.session_state.round_active, choice_key="b")
 
+        # Procesar clic — sin navegación, via WebSocket
         if st.session_state.round_active and (clicked_a or clicked_b):
             correct = ca if cds_a > cds_b else cb
             chosen = ca if clicked_a else cb
