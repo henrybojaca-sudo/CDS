@@ -149,21 +149,18 @@ section[data-testid="stSidebar"]{background:#0d1426;}
 .vs-divider{display:flex;flex-direction:column;align-items:center;justify-content:center;height:160px;}
 .vs-text{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:#334155;letter-spacing:.15em;}
 .vs-line{width:1px;height:28px;background:linear-gradient(to bottom,transparent,#334155,transparent);margin:4px 0;}
-a.flag-link{display:block;text-decoration:none;border-radius:16px;}
-a.flag-link:focus{outline:none;}
 .flag-choice-card{
     position:relative;border-radius:16px;overflow:hidden;height:160px;
     box-shadow:0 6px 28px rgba(0,0,0,0.55);
-    border:2px solid #1e293b;
-    cursor:pointer;
+    border:2px solid #1e293b;cursor:pointer;user-select:none;
     transition:border-color .2s, box-shadow .2s, transform .15s;
 }
-a.flag-link:hover .flag-choice-card{
+.flag-choice-card:hover{
     border-color:rgba(255,255,255,0.85);
     box-shadow:0 0 0 4px rgba(255,255,255,0.1), 0 8px 32px rgba(0,0,0,0.6);
     transform:scale(1.03);
 }
-a.flag-link:active .flag-choice-card{transform:scale(0.97);}
+.flag-choice-card:active{transform:scale(0.97);}
 .flag-choice-card img{width:100%;height:100%;object-fit:cover;display:block;}
 .fcc-gradient{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.3) 55%,rgba(0,0,0,0.05) 100%);}
 .fcc-name{position:absolute;bottom:12px;left:0;right:0;text-align:center;color:#fff;font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;text-shadow:0 2px 10px rgba(0,0,0,1);letter-spacing:-.2px;}
@@ -173,6 +170,9 @@ a.flag-link:active .flag-choice-card{transform:scale(0.97);}
 .flag-result-card img{width:100%;height:100%;object-fit:cover;display:block;}
 .flag-result-card .fcc-gradient{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.3) 55%,rgba(0,0,0,0.05) 100%);}
 .flag-result-card .fcc-name{position:absolute;bottom:12px;left:0;right:0;text-align:center;color:#fff;font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;text-shadow:0 2px 10px rgba(0,0,0,1);}
+div[data-testid="stColumn"]:has(.flag-choice-card) div[data-testid="stButton"]{
+    position:absolute;opacity:0;width:0;height:0;overflow:hidden;
+}
 div[data-testid="stButton"]>button{border-radius:12px!important;font-family:'DM Sans',sans-serif!important;font-weight:600!important;font-size:.9rem!important;padding:10px 16px!important;width:100%!important;transition:all .15s ease!important;border:1.5px solid #1e3a5f!important;background:linear-gradient(135deg,#0f2a4a,#0d1f3c)!important;color:#93c5fd!important;}
 div[data-testid="stButton"]>button:hover{border-color:#3b82f6!important;color:#bfdbfe!important;transform:translateY(-1px)!important;box-shadow:0 6px 20px rgba(59,130,246,.2)!important;}
 div[data-testid="stButton"]>button[kind="primary"]{background:linear-gradient(135deg,#1d4ed8,#1e40af)!important;border-color:#3b82f6!important;color:#fff!important;}
@@ -203,16 +203,18 @@ def render_flag_card(name, clickable=True, choice_key=""):
                 if flag_url else '<div class="fcc-placeholder">🏳️</div>')
 
     if clickable:
-        hint = '<div class="fcc-hint">👆 seleccionar</div>'
+        onclick = (
+            "var c=this.closest('[data-testid=&quot;stColumn&quot;]');"
+            "if(c){var b=c.querySelector('button');if(b)b.click();}"
+        )
         st.markdown(f"""
-<a href="?choice={choice_key}" class="flag-link">
-  <div class="flag-choice-card">
-    {img_html}
-    <div class="fcc-gradient"></div>
-    <div class="fcc-name">{name}</div>
-    {hint}
-  </div>
-</a>""", unsafe_allow_html=True)
+<div class="flag-choice-card" onclick="{onclick}">
+  {img_html}
+  <div class="fcc-gradient"></div>
+  <div class="fcc-name">{name}</div>
+  <div class="fcc-hint">👆 seleccionar</div>
+</div>""", unsafe_allow_html=True)
+        return st.button(f"▶{choice_key}", key=f"flag_btn_{choice_key}")
     else:
         st.markdown(f"""
 <div class="flag-result-card">
@@ -220,6 +222,7 @@ def render_flag_card(name, clickable=True, choice_key=""):
   <div class="fcc-gradient"></div>
   <div class="fcc-name">{name}</div>
 </div>""", unsafe_allow_html=True)
+        return False
 
 
 def render_flag_small(name):
@@ -240,29 +243,6 @@ def render_flag_small(name):
 def main():
     init_state()
     inject_css()
-
-    params = st.query_params
-    if "choice" in params and st.session_state.get("round_active") and st.session_state.get("game_started") and not st.session_state.get("game_over"):
-        choice = params["choice"]
-        st.query_params.clear()
-        pair = st.session_state.current_pair
-        if pair:
-            df = st.session_state.df
-            ia, ib = pair
-            ca, cb = df.loc[ia,"Pais"], df.loc[ib,"Pais"]
-            cds_a, cds_b = df.loc[ia,"CDS"], df.loc[ib,"CDS"]
-            correct = ca if cds_a > cds_b else cb
-            chosen = ca if choice == "a" else cb
-            if chosen == correct:
-                st.session_state.score += 1
-                st.session_state.best = max(st.session_state.best, st.session_state.score)
-                st.session_state.feedback = "correct"
-            else:
-                st.session_state.feedback = "wrong"
-                st.session_state.game_over = True
-            st.session_state.correct_country = correct
-            st.session_state.round_active = False
-            st.rerun()
 
     st.markdown(
         '<div class="game-header">'
@@ -309,20 +289,34 @@ def main():
         df = st.session_state.df
         ia, ib = pair
         ca, cb = df.loc[ia,"Pais"], df.loc[ib,"Pais"]
+        cds_a, cds_b = df.loc[ia,"CDS"], df.loc[ib,"CDS"]
 
         st.markdown('<hr class="game-divider">', unsafe_allow_html=True)
         st.markdown('<div class="question-label">¿Cuál tiene el CDS más alto? — haz clic en la bandera</div>', unsafe_allow_html=True)
 
         col_a, col_vs, col_b = st.columns([5, 1, 5])
         with col_a:
-            render_flag_card(ca, clickable=st.session_state.round_active, choice_key="a")
+            clicked_a = render_flag_card(ca, clickable=st.session_state.round_active, choice_key="a")
         with col_vs:
             st.markdown('<div class="vs-divider"><div class="vs-line"></div><div class="vs-text">VS</div><div class="vs-line"></div></div>', unsafe_allow_html=True)
         with col_b:
-            render_flag_card(cb, clickable=st.session_state.round_active, choice_key="b")
+            clicked_b = render_flag_card(cb, clickable=st.session_state.round_active, choice_key="b")
+
+        if st.session_state.round_active and (clicked_a or clicked_b):
+            correct = ca if cds_a > cds_b else cb
+            chosen = ca if clicked_a else cb
+            if chosen == correct:
+                st.session_state.score += 1
+                st.session_state.best = max(st.session_state.best, st.session_state.score)
+                st.session_state.feedback = "correct"
+            else:
+                st.session_state.feedback = "wrong"
+                st.session_state.game_over = True
+            st.session_state.correct_country = correct
+            st.session_state.round_active = False
+            st.rerun()
 
         if st.session_state.feedback == "correct":
-            cds_a, cds_b = df.loc[ia,"CDS"], df.loc[ib,"CDS"]
             cn = st.session_state.correct_country
             c_cds = df.loc[df["Pais"]==cn,"CDS"].values[0]
             ot = cb if cn==ca else ca
