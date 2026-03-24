@@ -74,31 +74,36 @@ NON_COUNTRIES = {"América","EMEA","Asia/Pacífico","Name"}
 _GAMEOVER_JS = """
 <script>(function(){
   try {
-    // Acceder a la ventana padre (same-origin en Streamlit) donde ocurrió el clic del usuario.
-    // Reutilizar el AudioContext guardado para heredar el permiso de autoplay.
     var w = window;
     try { if (window.top && window.top !== window) w = window.top; } catch(e) {}
-    var ACtx = w.AudioContext || w.webkitAudioContext;
-    if (!w._goCtx) w._goCtx = new ACtx();
-    var ctx = w._goCtx;
-    if (ctx.state === 'suspended') ctx.resume();
+    var ACtx = w.AudioContext || w.webkitAudioContext || window.AudioContext || window.webkitAudioContext;
+    if (!ACtx) throw new Error('no AudioContext');
+    var ctx = new ACtx();
     var notes = [
       [523.25,0.20],[392.00,0.20],[0,0.20],
       [415.30,0.40],[392.00,0.40],[0,0.20],
       [349.23,0.60],[329.63,0.30],[293.66,0.30],[261.63,1.00]
     ];
-    var t = ctx.currentTime + 0.05;
-    notes.forEach(function(n){
-      if(n[0]>0){
-        var o=ctx.createOscillator(), g=ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
-        o.type='square'; o.frequency.value=n[0];
-        g.gain.setValueAtTime(0.28,t);
-        g.gain.exponentialRampToValueAtTime(0.001,t+n[1]*0.9);
-        o.start(t); o.stop(t+n[1]);
-      }
-      t+=n[1];
-    });
+    function play() {
+      var t = ctx.currentTime + 0.05;
+      notes.forEach(function(n){
+        if(n[0]>0){
+          var o=ctx.createOscillator(), g=ctx.createGain();
+          o.connect(g); g.connect(ctx.destination);
+          o.type='square'; o.frequency.value=n[0];
+          g.gain.setValueAtTime(0.28,t);
+          g.gain.exponentialRampToValueAtTime(0.001,t+n[1]*0.9);
+          o.start(t); o.stop(t+n[1]);
+        }
+        t+=n[1];
+      });
+    }
+    // resume() returns a Promise — schedule notes only AFTER the context is running
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(play).catch(function(e){ console.warn('resume failed:', e); });
+    } else {
+      play();
+    }
   } catch(e){ console.warn('gameover sound error:', e); }
 })();</script>
 """
