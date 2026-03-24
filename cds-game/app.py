@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import random
-import math, wave, struct, io
+import math, wave, struct, io, base64
 
 st.set_page_config(
     page_title="CDS Challenge",
@@ -425,14 +425,10 @@ def main():
             ot = cb if cn==ca else ca
             o_cds = df.loc[df["Pais"]==ot,"CDS"].values[0]
             st.markdown(f'<div class="fb-box fb-wrong">❌ Racha detenida en <b>{sc}</b> acierto{"s" if sc!=1 else ""}<br><small>Respuesta correcta: <b>{cn}</b> ({c_cds:,.1f} pb) vs {ot} ({o_cds:,.1f} pb)</small></div>', unsafe_allow_html=True)
-            _, cgo, _ = st.columns([1, 4, 1])
-            with cgo:
-                st.markdown(
-                    '<div style="text-align:center;color:#f87171;font-size:.72rem;'
-                    'letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px">'
-                    '🎵 Game Over · haz clic en ▶</div>',
-                    unsafe_allow_html=True)
-                st.audio(_mario_gameover_wav(), format="audio/wav", loop=False)
+            b64 = base64.b64encode(_mario_gameover_wav()).decode()
+            st.markdown(
+                f'<audio autoplay><source src="data:audio/wav;base64,{b64}" type="audio/wav"></audio>',
+                unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
             a2, v2, b2 = st.columns([5, 1, 5])
             with a2:
