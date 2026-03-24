@@ -74,7 +74,14 @@ NON_COUNTRIES = {"América","EMEA","Asia/Pacífico","Name"}
 _GAMEOVER_JS = """
 <script>(function(){
   try {
-    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Acceder a la ventana padre (same-origin en Streamlit) donde ocurrió el clic del usuario.
+    // Reutilizar el AudioContext guardado para heredar el permiso de autoplay.
+    var w = window;
+    try { if (window.top && window.top !== window) w = window.top; } catch(e) {}
+    var ACtx = w.AudioContext || w.webkitAudioContext;
+    if (!w._goCtx) w._goCtx = new ACtx();
+    var ctx = w._goCtx;
+    if (ctx.state === 'suspended') ctx.resume();
     var notes = [
       [523.25,0.20],[392.00,0.20],[0,0.20],
       [415.30,0.40],[392.00,0.40],[0,0.20],
@@ -92,7 +99,7 @@ _GAMEOVER_JS = """
       }
       t+=n[1];
     });
-  } catch(e){}
+  } catch(e){ console.warn('gameover sound error:', e); }
 })();</script>
 """
 
