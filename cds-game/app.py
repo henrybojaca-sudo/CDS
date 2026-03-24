@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import random
 import math, wave, struct, io
+import streamlit.components.v1 as components
 
 st.set_page_config(
     page_title="CDS Challenge",
@@ -70,39 +71,30 @@ DEFAULT_DATA = [
 NON_COUNTRIES = {"América","EMEA","Asia/Pacífico","Name"}
 
 # ── Música Mario Bros (síntesis WAV en Python) ───────────────────────────────
-@st.cache_data
-def _mario_gameover_wav() -> bytes:
-    """Genera el jingle de muerte/game-over de Mario Bros como WAV."""
-    SR = 22050
-    T = 60.0 / 150  # 150 BPM
-    MELODY = [
-        (523.25, 0.5),  # C5
-        (392.00, 0.5),  # G4
-        (0,      0.5),  # silencio
-        (415.30, 1.0),  # Ab4
-        (392.00, 1.0),  # G4
-        (0,      0.5),  # silencio
-        (349.23, 1.5),  # F4
-        (329.63, 0.75), # E4
-        (293.66, 0.75), # D4
-        (261.63, 2.5),  # C4 (nota final larga)
-    ]
-    samples = []
-    for freq, beats in MELODY:
-        n = int(SR * beats * T)
-        if freq == 0:
-            samples.extend([0] * n)
-        else:
-            for i in range(n):
-                env = min(1.0, i / (SR * 0.008)) * max(0.0, 1.0 - i / n * 0.15)
-                v = env * 0.28 * (1 if math.sin(2 * math.pi * freq * i / SR) > 0 else -1)
-                samples.append(max(-32767, min(32767, int(v * 32767))))
-    buf = io.BytesIO()
-    with wave.open(buf, 'wb') as wf:
-        wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(SR)
-        wf.writeframes(struct.pack(f'<{len(samples)}h', *samples))
-    return buf.getvalue()
-
+_GAMEOVER_JS = """
+<script>(function(){
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var notes = [
+      [523.25,0.20],[392.00,0.20],[0,0.20],
+      [415.30,0.40],[392.00,0.40],[0,0.20],
+      [349.23,0.60],[329.63,0.30],[293.66,0.30],[261.63,1.00]
+    ];
+    var t = ctx.currentTime + 0.05;
+    notes.forEach(function(n){
+      if(n[0]>0){
+        var o=ctx.createOscillator(), g=ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type='square'; o.frequency.value=n[0];
+        g.gain.setValueAtTime(0.28,t);
+        g.gain.exponentialRampToValueAtTime(0.001,t+n[1]*0.9);
+        o.start(t); o.stop(t+n[1]);
+      }
+      t+=n[1];
+    });
+  } catch(e){}
+})();</script>
+"""
 
 @st.cache_data
 def _mario_wav() -> bytes:
@@ -425,14 +417,7 @@ def main():
             ot = cb if cn==ca else ca
             o_cds = df.loc[df["Pais"]==ot,"CDS"].values[0]
             st.markdown(f'<div class="fb-box fb-wrong">❌ Racha detenida en <b>{sc}</b> acierto{"s" if sc!=1 else ""}<br><small>Respuesta correcta: <b>{cn}</b> ({c_cds:,.1f} pb) vs {ot} ({o_cds:,.1f} pb)</small></div>', unsafe_allow_html=True)
-            _, cgo, _ = st.columns([1, 4, 1])
-            with cgo:
-                st.markdown(
-                    '<div style="text-align:center;color:#f87171;font-size:.72rem;'
-                    'letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px">'
-                    '🎵 Game Over · haz clic en ▶</div>',
-                    unsafe_allow_html=True)
-                st.audio(_mario_gameover_wav(), format="audio/wav", loop=False)
+            components.html(_GAMEOVER_JS, height=0)
             st.markdown("<br>", unsafe_allow_html=True)
             a2, v2, b2 = st.columns([5, 1, 5])
             with a2:
