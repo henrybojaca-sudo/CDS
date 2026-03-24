@@ -319,14 +319,16 @@ def main():
         f'</div>', unsafe_allow_html=True)
 
     # ── Reproductor de música visible en el contenido principal ──────────────
-    _, cm, _ = st.columns([1, 4, 1])
-    with cm:
-        st.markdown(
-            '<div style="text-align:center;color:#475569;font-size:.72rem;'
-            'letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px">'
-            '🎵 Música del juego · haz clic en ▶</div>',
-            unsafe_allow_html=True)
-        st.audio(_mario_wav(), format="audio/wav", loop=True)
+    # No mostrar mientras suena el game-over para que no se superpongan
+    if st.session_state.feedback != "wrong":
+        _, cm, _ = st.columns([1, 4, 1])
+        with cm:
+            st.markdown(
+                '<div style="text-align:center;color:#475569;font-size:.72rem;'
+                'letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px">'
+                '🎵 Música del juego · haz clic en ▶</div>',
+                unsafe_allow_html=True)
+            st.audio(_mario_wav(), format="audio/wav", loop=True)
 
     with st.sidebar:
         st.markdown("### 📂 Datos")
