@@ -151,11 +151,11 @@ def load_excel(f):
             if name in NON_COUNTRIES or name == "nan":
                 continue
             try:
-                rows.append((name, round(float(row[7]), 2)))
+                rows.append((name, round(float(row[1]), 2)))
             except (TypeError, ValueError, IndexError):
                 continue
         if len(rows) < 2:
-            st.error("Necesitas al menos 2 países con CDS en columna H.")
+            st.error("Necesitas al menos 2 países con CDS en columna B.")
             return None
         return pd.DataFrame(rows, columns=["Pais","CDS"]).reset_index(drop=True)
     except Exception as e:
